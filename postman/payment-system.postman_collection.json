@@ -1,0 +1,225 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "Payment System",
+    "description": "Distributed Payment Processing System API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "paymentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "customerId",
+      "value": "cust_001",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Create Payment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const body = pm.response.json();",
+                  "    pm.collectionVariables.set('paymentId', body.id);",
+                  "    pm.test('Status is PENDING', () => pm.expect(body.status).to.equal('PENDING'));",
+                  "    pm.test('Payment ID set', () => pm.expect(body.id).to.be.a('string'));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{$randomUUID}}", "description": "Change to a fixed value to test idempotency" },
+              { "key": "X-Customer-Id", "value": "{{customerId}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 9999,\n  \"currency\": \"usd\",\n  \"metadata\": {\n    \"order_id\": \"ord_001\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "payments"]
+            }
+          }
+        },
+        {
+          "name": "Create Payment (duplicate — idempotency test)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Returns 201 from cache', () => pm.expect(pm.response.code).to.equal(201));",
+                  "pm.test('Same payment ID', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.id).to.equal(pm.collectionVariables.get('paymentId'));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "fixed-key-for-idempotency-test", "description": "Use the SAME key as your first create request" },
+              { "key": "X-Customer-Id", "value": "{{customerId}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 9999,\n  \"currency\": \"usd\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "payments"]
+            },
+            "description": "Send with the same Idempotency-Key as the first request. Should return the exact same response from Redis cache."
+          }
+        },
+        {
+          "name": "Get Payment by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.expect(pm.response.code).to.equal(200));",
+                  "pm.test('Has payment ID', () => pm.expect(pm.response.json().id).to.be.a('string'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/v1/payments/{{paymentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "payments", "{{paymentId}}"]
+            }
+          }
+        },
+        {
+          "name": "List Payments (paginated)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.expect(pm.response.code).to.equal(200));",
+                  "pm.test('Has payments array', () => pm.expect(pm.response.json().payments).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/v1/payments?customerId={{customerId}}&page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "payments"],
+              "query": [
+                { "key": "customerId", "value": "{{customerId}}" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Refund Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{$randomUUID}}" },
+              { "key": "X-Customer-Id", "value": "{{customerId}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 4999,\n  \"reason\": \"customer_request\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/payments/{{paymentId}}/refund",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "payments", "{{paymentId}}", "refund"]
+            },
+            "description": "Requires the payment to be in COMPLETED status."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health Checks",
+      "item": [
+        {
+          "name": "payment-service health",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8080/actuator/health",
+              "host": ["http://localhost:8080"],
+              "path": ["actuator", "health"]
+            }
+          }
+        },
+        {
+          "name": "saga-orchestrator health",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8081/actuator/health",
+              "host": ["http://localhost:8081"],
+              "path": ["actuator", "health"]
+            }
+          }
+        },
+        {
+          "name": "recon-worker health",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8082/actuator/health",
+              "host": ["http://localhost:8082"],
+              "path": ["actuator", "health"]
+            }
+          }
+        },
+        {
+          "name": "notification-service health",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8083/actuator/health",
+              "host": ["http://localhost:8083"],
+              "path": ["actuator", "health"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
