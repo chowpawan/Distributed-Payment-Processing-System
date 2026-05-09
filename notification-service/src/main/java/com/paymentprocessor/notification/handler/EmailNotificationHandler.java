@@ -21,16 +21,14 @@ public class EmailNotificationHandler implements NotificationHandler {
     public void handle(PaymentEvent event, String customerId) {
         // Mock implementation — logs instead of sending real email
         // Production: integrate with SES/SendGrid/Mailgun
-        switch (event) {
-            case PaymentCompleted completed -> log.info(
-                    "[EMAIL MOCK] Sending payment confirmation to customer={} paymentId={} amount={} {}",
-                    customerId, completed.paymentId(), completed.amount(), completed.currency()
-            );
-            case PaymentFailed failed -> log.info(
-                    "[EMAIL MOCK] Sending payment failure notification to customer={} paymentId={} reason={}",
-                    customerId, failed.paymentId(), failed.reason()
-            );
-            default -> log.debug("[EMAIL MOCK] No email template for event type={}", event.eventType());
+        if (event instanceof PaymentCompleted completed) {
+            log.info("[EMAIL MOCK] Sending payment confirmation to customer={} paymentId={} amount={} {}",
+                    customerId, completed.paymentId(), completed.amount(), completed.currency());
+        } else if (event instanceof PaymentFailed failed) {
+            log.info("[EMAIL MOCK] Sending payment failure notification to customer={} paymentId={} reason={}",
+                    customerId, failed.paymentId(), failed.reason());
+        } else {
+            log.debug("[EMAIL MOCK] No email template for event type={}", event.eventType());
         }
     }
 }

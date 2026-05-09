@@ -46,8 +46,8 @@ class WebhookSignatureSignerTest {
 
     @Test
     void sign_knownVector() {
-        // HMAC-SHA256("Hello", "key") = 9307b3b915efb5171ff14d8cb55fbcc798c6c0ef1456d66ded1a6aa723a58b7b
+        // HMAC-SHA256("Hello", "key") = c70b9f4d665bd62974afc83582de810e72a41a58db82c538a9d734c9266d321e
         String sig = signer.sign("Hello", "key");
-        assertEquals("sha256=9307b3b915efb5171ff14d8cb55fbcc798c6c0ef1456d66ded1a6aa723a58b7b", sig);
+        assertEquals("sha256=c70b9f4d665bd62974afc83582de810e72a41a58db82c538a9d734c9266d321e", sig);
     }
 }

@@ -57,11 +57,11 @@ public class PaymentEventConsumer {
     }
 
     private String extractCustomerId(PaymentEvent event) {
-        // customerId is not on the base interface; extract from concrete types
-        return switch (event) {
-            case PaymentCompleted completed -> completed.paymentId(); // fallback: use paymentId
-            case PaymentFailed failed -> failed.paymentId();           // production: look up from DB
-            default -> "unknown";
-        };
+        if (event instanceof PaymentCompleted completed) {
+            return completed.paymentId();
+        } else if (event instanceof PaymentFailed failed) {
+            return failed.paymentId();
+        }
+        return "unknown";
     }
 }

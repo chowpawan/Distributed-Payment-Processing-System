@@ -37,6 +37,7 @@ public class SagaState {
     private Instant completedAt;
 
     public UUID getSagaId() { return sagaId; }
+    public void setSagaId(UUID sagaId) { this.sagaId = sagaId; }
     public UUID getPaymentId() { return paymentId; }
     public void setPaymentId(UUID paymentId) { this.paymentId = paymentId; }
     public String getCurrentStep() { return currentStep; }

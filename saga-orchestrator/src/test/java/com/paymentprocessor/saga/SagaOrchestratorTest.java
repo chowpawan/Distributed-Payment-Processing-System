@@ -41,10 +41,11 @@ class SagaOrchestratorTest {
         when(notifyStep.handles()).thenReturn(SagaStep.NOTIFY);
 
         SagaState savedState = new SagaState();
+        savedState.setSagaId(UUID.randomUUID());
         savedState.setPaymentId(UUID.randomUUID());
         savedState.setStatus("RUNNING");
         savedState.setCurrentStep("CHARGE");
-        when(sagaStateRepository.save(any(SagaState.class))).thenReturn(savedState);
+        lenient().when(sagaStateRepository.save(any(SagaState.class))).thenReturn(savedState);
 
         orchestrator = new SagaOrchestrator(
                 List.of(chargeStep, recordStep, notifyStep),
